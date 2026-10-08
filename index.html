@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Stitch Tracker</title>
+  <meta name="theme-color" content="#fffaf4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#2a2521" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Stitches">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="lib/pdf.min.js"></script>
+</head>
+<body>
+
+  <!-- ============ Library ============ -->
+  <section id="library" class="view">
+    <header class="bar">
+      <h1 class="grow">🧶 Stitch Tracker</h1>
+      <button class="btn" id="backupBtn" title="Save all patterns and progress to a file">⬇ Backup</button>
+      <label class="btn" title="Load patterns from a backup file">⬆ Restore
+        <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+      </label>
+      <label class="btn primary">+ New pattern
+        <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+      </label>
+    </header>
+    <div class="scroll">
+      <div id="projectGrid" class="grid"></div>
+      <p id="emptyMsg" class="empty">No patterns yet. Upload a PDF to get started.</p>
+    </div>
+  </section>
+
+  <!-- ============ Page picker ============ -->
+  <section id="picker" class="view" hidden>
+    <header class="bar">
+      <button class="btn icon" id="pickerBack" title="Back">←</button>
+      <div class="grow">
+        <h2 id="pickerTitle" class="ellipsis"></h2>
+        <small class="muted">Tap a page to include or exclude it. Tap ★ to set the pattern page.</small>
+      </div>
+      <button class="btn" id="selAll">All</button>
+      <button class="btn" id="selNone">None</button>
+      <button class="btn primary" id="pickerDone">Done</button>
+    </header>
+    <div class="scroll">
+      <div id="pickerGrid" class="grid pages"></div>
+    </div>
+  </section>
+
+  <!-- ============ Viewer ============ -->
+  <section id="viewer" class="view" hidden>
+    <header class="bar">
+      <button class="btn icon" id="backBtn" title="Library">←</button>
+      <h2 id="projName" class="grow ellipsis"></h2>
+      <div class="group">
+        <button class="btn icon" id="pagePrev" title="Previous page">‹</button>
+        <select id="pageSelect" title="Page"></select>
+        <button class="btn icon" id="pageNext" title="Next page">›</button>
+      </div>
+      <div class="group">
+        <button class="btn icon desktop-only" id="zoomOut" title="Zoom out">−</button>
+        <button class="btn" id="zoomFit" title="Fit width">Fit</button>
+        <button class="btn icon desktop-only" id="zoomIn" title="Zoom in">+</button>
+      </div>
+      <div class="group seg">
+        <button class="btn" id="modeTrack" title="Track">📍<span class="txt"> Track</span></button>
+        <button class="btn" id="modeDraw" title="Draw">✏️<span class="txt"> Draw</span></button>
+      </div>
+      <button class="btn" id="notesBtn" title="Notes">📝<span class="txt"> Notes</span></button>
+      <button class="btn" id="pagesBtn" title="Choose pages">📄<span class="txt"> Pages</span></button>
+      <button class="btn icon" id="settingsBtn" title="Settings">⚙</button>
+      <button class="btn icon desktop-only" id="fsBtn" title="Fullscreen">⛶</button>
+    </header>
+
+    <div id="drawBar" class="bar sub" hidden>
+      <div class="group seg" id="toolGroup">
+        <button class="btn" data-tool="pen" title="Pen">🖊<span class="txt"> Pen</span></button>
+        <button class="btn" data-tool="highlight" title="Highlighter">🖍<span class="txt"> Highlighter</span></button>
+        <button class="btn" data-tool="erase" title="Eraser">🧽<span class="txt"> Eraser</span></button>
+      </div>
+      <div class="group" id="colorGroup"></div>
+      <div class="group seg" id="sizeGroup">
+        <button class="btn" data-size="2" title="Fine">S</button>
+        <button class="btn" data-size="4" title="Medium">M</button>
+        <button class="btn" data-size="8" title="Thick">L</button>
+      </div>
+      <button class="btn" id="undoBtn" title="Undo">↶<span class="txt"> Undo</span></button>
+      <button class="btn" id="clearInk" title="Clear page">🗑<span class="txt"> Clear page</span></button>
+    </div>
+
+    <main id="stage">
+      <div id="pageWrap">
+        <canvas id="pdfCanvas"></canvas>
+        <div id="dim"></div>
+        <canvas id="inkCanvas"></canvas>
+        <div id="colBar" class="marker col"><div class="grip" id="colGrip" title="Drag to resize">↔</div></div>
+        <div id="rowBar" class="marker row"><div class="grip" id="rowGrip" title="Drag to resize">↕</div></div>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <div class="ctl-group">
+        <span class="lbl">Row</span>
+        <button class="btn big" id="rowPrev" title="Previous row">−</button>
+        <button class="counter" id="rowNum" title="Tap to set row number">1</button>
+        <button class="btn big primary" id="rowNext" title="Next row (Space)">+</button>
+        <button class="btn icon toggle" id="rowVis" title="Show / hide row marker">👁</button>
+      </div>
+      <div class="ctl-group">
+        <span class="lbl">Stitch</span>
+        <button class="btn big" id="stPrev" title="Previous stitch">−</button>
+        <button class="counter small" id="stNum" title="Tap to set stitch number">1</button>
+        <button class="btn big primary alt" id="stNext" title="Next stitch">+</button>
+        <button class="btn icon" id="stDir" title="Stitch direction (tap to switch)">←</button>
+        <button class="btn" id="stStart" title="Remember the stitch marker's current spot as where rows in this direction start">⇤<span class="txt"> Set start</span></button>
+        <button class="btn icon toggle" id="colVis" title="Show / hide stitch marker">👁</button>
+      </div>
+    </footer>
+
+    <aside id="notesPanel" hidden>
+      <div class="bar">
+        <h3 class="grow">Notes</h3>
+        <button class="btn icon" id="notesClose" title="Close">✕</button>
+      </div>
+      <textarea id="notesText" placeholder="Gauge, needle size, modifications, where you left off…"></textarea>
+    </aside>
+  </section>
+
+  <!-- ============ Settings ============ -->
+  <dialog id="settingsDlg">
+    <form method="dialog">
+      <h3>Tracker settings</h3>
+      <label>Rows advance
+        <select id="setRowDir">
+          <option value="up">Bottom → top (charts)</option>
+          <option value="down">Top → bottom (written instructions)</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="setFlip"> Flip stitch direction every row (flat knitting)</label>
+      <label class="check"><input type="checkbox" id="setDim"> Shade rows I've already worked</label>
+      <label>Row marker colour <span class="swatches" id="rowColors"></span></label>
+      <label>Stitch marker colour <span class="swatches" id="colColors"></span></label>
+      <label>Marker opacity <input type="range" id="setOpacity" min="0.1" max="0.8" step="0.05"></label>
+      <div class="row-btns">
+        <button type="button" class="btn" id="resetMarkers">Reset markers on this page</button>
+        <button class="btn primary" value="close">Close</button>
+      </div>
+      <p class="muted small">Keys: Space = next row, ↑/↓ = move row marker, ←/→ = move stitch marker.</p>
+    </form>
+  </dialog>
+
+  <div id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

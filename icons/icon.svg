@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#f6f1ea"/>
+  <!-- needle -->
+  <line x1="120" y1="420" x2="420" y2="90" stroke="#8a5a3b" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="120" cy="420" r="18" fill="#8a5a3b"/>
+  <!-- yarn ball -->
+  <circle cx="246" cy="276" r="150" fill="#c8553d"/>
+  <g fill="none" stroke="#f6c2b3" stroke-width="12" stroke-linecap="round">
+    <path d="M120 210 C 200 250, 300 250, 380 200"/>
+    <path d="M104 270 C 190 320, 310 320, 394 262"/>
+    <path d="M122 340 C 200 380, 300 380, 370 336"/>
+    <path d="M200 134 C 150 220, 160 340, 230 422"/>
+    <path d="M290 134 C 340 220, 330 340, 270 422"/>
+  </g>
+  <!-- loose strand -->
+  <path d="M380 340 C 430 380, 400 440, 450 470" fill="none" stroke="#c8553d" stroke-width="12" stroke-linecap="round"/>
+  <!-- row marker hint -->
+  <rect x="0" y="256" width="512" height="40" fill="#ffd84d" opacity=".45"/>
+</svg>
